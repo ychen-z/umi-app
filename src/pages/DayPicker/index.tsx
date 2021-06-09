@@ -1,18 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
 import classnames from 'classnames';
+import { Checkbox } from "antd";
+import {CheckboxChangeEvent} from "antd/es/checkbox"
 import './index.less';
 
-export type Op = 'DESC' | 'ADD'; // 操作类型
+export type OpProps = 'DESC' | 'ADD'; // 操作类型
 
-export interface Props {
-  currentTime?: string;
-  callback?: (day: string) => void;
+export interface TimePickerProps {
+  currentTime?: string | undefined;
+  flag?: boolean;
+  callback?: (data: TimePickerProps) => void;
 }
 
 export const weekNodes = ['日', '一', '二', '三', '四', '五', '六'];
 
-// 相对于本周第一天
+/**
+ * 
+ * @param next 周，比如当前周
+ * @param step 步长
+ * @returns 日期对象
+ */
 function dayInfo(next = 0, step = 7) {
   const dateJS = dayjs().add(next * step, 'day'); // 当前日期
   return {
@@ -25,17 +33,30 @@ function dayInfo(next = 0, step = 7) {
   };
 }
 
-function TimePicker(props: Props) {
-  const { callback } = props;
-  const [week, setWeek] = useState(0); // 当前周
-  const [weekInfo, setWeekInfo] = useState(dayInfo(week));
+/**
+ * 
+ * @param props 
+ * @returns 
+ */
+function TimePicker(props: TimePickerProps) {
+  const { callback, currentTime } = props;
+  const diffdays = currentTime? dayjs(currentTime).diff(dayInfo(0).today,'day'): 0; // 与今天相隔多久
+  const [week, setWeek] = useState(Number((diffdays / 7).toFixed(0))); // 当前周
+  const [flag, setFlag] = useState(props.flag || false); // 当前周
+  const [weekInfo, setWeekInfo] = useState(dayInfo(diffdays, 1));
   const [selectNodeIndex, setSelectNodeIndex] = useState<number>(weekInfo.weekday);
   const [month, SetMonth] = useState(weekInfo.month); // 当前月
+  
   let operationClassname = classnames('operation', {
     'out-time': 0 >= week,
   });
 
-  // 选中日期
+  /**
+   * 
+   * @param index 索引
+   * @param outTime 是否过期
+   * @returns callback 暴露 currentTime & flag 给上层
+   */
   const selectDay = (index: number, outTime: boolean) => {
     if (outTime) return;
     const chooseDay = weekInfo.dateJS
@@ -44,12 +65,21 @@ function TimePicker(props: Props) {
     
     setSelectNodeIndex(index); // 选中的节点
     SetMonth(chooseDay.month() + 1); //选中的节点对应的月份 
-    callback && callback(formatDate);
+    callback && callback({
+      currentTime: formatDate,
+      flag
+    });
   };
 
-  // 改变周
-  const changeWeek = (type: Op) => {
+  /**
+   * 
+   * @param type 上一周 desc ; 下一周 add
+   * @returns 
+   */
+  const changeWeek = (type: OpProps) => {
+    // 当前周 且向下无法往下选择
     if (type == 'DESC' && week == 0) return;
+    
     switch (type) {
       case 'DESC':
         if (week === 1 && weekInfo.weekday >= selectNodeIndex) {
@@ -65,6 +95,17 @@ function TimePicker(props: Props) {
     }
   };
 
+  /**
+   * 选择
+   */
+  const changeCheckbox = (e: CheckboxChangeEvent)=>{
+    setFlag(e.target.checked);
+  }
+
+  /**
+   * 
+   * @returns 返回cell对象
+   */
   const renderTimerArea = () => {
     return weekNodes.map((item, weekIndex) => {
       let date = weekInfo.date + weekIndex - weekInfo.weekday;
@@ -93,7 +134,7 @@ function TimePicker(props: Props) {
   };
 
   useEffect(() => {
-    setWeekInfo(dayInfo(week)); // 更加周确定当前周状态
+    setWeekInfo(dayInfo(week));
   }, [week]);
 
   useEffect(() => {
@@ -101,16 +142,21 @@ function TimePicker(props: Props) {
   }, [weekInfo])
 
   return (
-    <div className="timer">
-      <div className="month">{month} 月</div>
-      <div className="week">
-        <span className={operationClassname} onClick={() => changeWeek('DESC')}>
-          -
-        </span>
-        <div className="timer-area">{renderTimerArea()}</div>
-        <span className="operation" onClick={() => changeWeek('ADD')}>
-          +
-        </span>
+    <div className="m-timer-picker">
+      <div className="u-timer">
+        <div className="month">{month} 月</div>
+        <div className="week">
+          <span className={operationClassname} onClick={() => changeWeek('DESC')}>
+            -
+          </span>
+          <div className="timer-area">{renderTimerArea()}</div>
+          <span className="operation" onClick={() => changeWeek('ADD')}>
+            +
+          </span>
+        </div>
+      </div>
+      <div className="u-footer">
+        <Checkbox onChange={changeCheckbox} defaultChecked={flag} > 暂不确定日期和时间，先设置评委，稍后再安排具体日期和时间</Checkbox>
       </div>
     </div>
   );

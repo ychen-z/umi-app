@@ -1,19 +1,18 @@
 import styles from './index.less';
-import DayPicker from "./DayPicker"
+import DayPicker, { TimePickerProps } from './DayPicker';
 import { useState } from 'react';
 
-
 export default function IndexPage() {
-  const [day, setDay] = useState('')
-  
-  const showDay = (day:string)=>{
-    setDay(day)
-  }
+  const [info, setInfo] = useState<TimePickerProps>({});
+
+  const showDay = (data: TimePickerProps) => {
+    setInfo(data);
+  };
 
   return (
     <div>
-      <DayPicker callback={showDay}/>
-      <div>你选中的是：{day}</div>
+      <DayPicker callback={showDay} flag={true} currentTime={'2021-5-21'} />
+      <div>你选中的是：{info.currentTime} </div>
       <h1 className={styles.title}>Page index</h1>
     </div>
   );
