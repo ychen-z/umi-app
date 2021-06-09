@@ -28,9 +28,9 @@ function dayInfo(next = 0, step = 7) {
 function TimePicker(props: Props) {
   const { callback } = props;
   const [week, setWeek] = useState(0); // 当前周
-  const [state, setState] = useState(dayInfo(week));
-  const [nodeIndex, setNodeIndex] = useState<number | null>(state.weekday);
-
+  const [weekInfo, setWeekInfo] = useState(dayInfo(week));
+  const [selectNodeIndex, setSelectNodeIndex] = useState<number>(weekInfo.weekday);
+  const [month, SetMonth] = useState(weekInfo.month); // 当前月
   let operationClassname = classnames('operation', {
     'out-time': 0 >= week,
   });
@@ -38,23 +38,23 @@ function TimePicker(props: Props) {
   // 选中日期
   const selectDay = (index: number, outTime: boolean) => {
     if (outTime) return;
-
-    const chooseDay = state.dateJS
-      .add(index - state.weekday, 'day')
-      .format('YYYY-MM-DD');
-    setNodeIndex(index);
-
-    callback && callback(chooseDay);
+    const chooseDay = weekInfo.dateJS
+      .add(index - weekInfo.weekday, 'day')
+    const formatDate = chooseDay.format('YYYY-MM-DD');
+    
+    setSelectNodeIndex(index); // 选中的节点
+    SetMonth(chooseDay.month() + 1); //选中的节点对应的月份 
+    callback && callback(formatDate);
   };
 
   // 改变周
   const changeWeek = (type: Op) => {
     if (type == 'DESC' && week == 0) return;
-    setNodeIndex(null);
-    callback && callback('');
-
     switch (type) {
       case 'DESC':
+        if (week === 1 && weekInfo.weekday >= selectNodeIndex) {
+          setSelectNodeIndex(weekInfo.weekday); // 当前周选中今天
+        }
         setWeek(week - 1);
         break;
       case 'ADD':
@@ -67,11 +67,11 @@ function TimePicker(props: Props) {
 
   const renderTimerArea = () => {
     return weekNodes.map((item, weekIndex) => {
-      let date = state.date + weekIndex - state.weekday;
-      let outTime = (state.weekday - weekIndex > 0 && week == 0) || week < 0; // 是否过期
+      let date = weekInfo.date + weekIndex - weekInfo.weekday;
+      let outTime = (weekInfo.weekday - weekIndex > 0 && week == 0) || week < 0; // 是否过期
       let classname = classnames('u-cell', {
-        'u-selected': nodeIndex == weekIndex,
-        'u-out-time': outTime,
+        'u-selected': selectNodeIndex == weekIndex,
+        'out-time': outTime,
       });
 
       return (
@@ -82,9 +82,9 @@ function TimePicker(props: Props) {
           <div className="header">{item}</div>
           <div>
             {date <= 0
-              ? state.dateJS.subtract(state.weekday - weekIndex, 'day').date()
-              : date > state.maxDay
-              ? date - state.maxDay
+              ? weekInfo.dateJS.subtract(weekInfo.weekday - weekIndex, 'day').date()
+              : date > weekInfo.maxDay // 是否超过当月最大天数
+              ? date - weekInfo.maxDay
               : date}
           </div>
         </span>
@@ -93,12 +93,16 @@ function TimePicker(props: Props) {
   };
 
   useEffect(() => {
-    setState(dayInfo(week));
+    setWeekInfo(dayInfo(week)); // 更加周确定当前周状态
   }, [week]);
+
+  useEffect(() => {
+    selectDay(selectNodeIndex, false); // 根据当前选中天
+  }, [weekInfo])
 
   return (
     <div className="timer">
-      <div className="month">{state.month} 月</div>
+      <div className="month">{month} 月</div>
       <div className="week">
         <span className={operationClassname} onClick={() => changeWeek('DESC')}>
           -
