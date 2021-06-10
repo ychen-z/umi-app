@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
 import classnames from 'classnames';
 import { Checkbox } from 'antd';
@@ -21,8 +21,8 @@ export const weekNodes = ['日', '一', '二', '三', '四', '五', '六'];
  * @param step 步长
  * @returns 日期对象
  */
-function dayInfo(next = 0, step = 7) {
-  const dateJS = dayjs().add(next * step, 'day'); // 当前日期
+function dayInfo(diff: number) {
+  const dateJS = dayjs().add(diff, 'day'); // 当前日期
   return {
     month: dateJS.month() + 1, // 今日所在月份
     date: dateJS.date(), // 今天几号 + 7 * x
@@ -33,26 +33,34 @@ function dayInfo(next = 0, step = 7) {
   };
 }
 
+function initdaysInfo(currentTime: string) {
+  const diffdays = currentTime
+    ? dayjs(currentTime).diff(dayInfo(0).today, 'day')
+    : 0; // 与今天相隔多久
+
+  return {
+    diffdays,
+    diffWeeks: Number((diffdays / 7).toFixed(0)),
+  };
+}
 /**
  *
  * @param props
  * @returns
  */
 function TimePicker(props: TimePickerProps) {
-  const { callback, currentTime } = props;
-  const diffdays = currentTime
-    ? dayjs(currentTime).diff(dayInfo(0).today, 'day')
-    : 0; // 与今天相隔多久
-  const [week, setWeek] = useState(Number((diffdays / 7).toFixed(0))); // 当前周
-  const [flag, setFlag] = useState(props.flag || false); // 当前周
-  const [weekInfo, setWeekInfo] = useState(dayInfo(diffdays, 1));
+  const { callback, currentTime = '' } = props;
+  const [flag, setFlag] = useState(props.flag || false); // 是否候选
+
+  const [diffDaysInfo, setDiffDaysInfo] = useState(initdaysInfo(currentTime));
+  const [weekInfo, setWeekInfo] = useState(dayInfo(diffDaysInfo.diffdays));
+  const [month, SetMonth] = useState(weekInfo.month); // 当前月
   const [selectNodeIndex, setSelectNodeIndex] = useState<number>(
     weekInfo.weekday,
   );
-  const [month, SetMonth] = useState(weekInfo.month); // 当前月
 
   let operationClassname = classnames('operation', {
-    'out-time': 0 >= week,
+    'out-time': 0 >= diffDaysInfo.diffWeeks,
   });
 
   /**
@@ -61,23 +69,19 @@ function TimePicker(props: TimePickerProps) {
    * @param outTime 是否过期
    * @returns callback 暴露 currentTime & flag 给上层
    */
-  const selectDay = useCallback(
-    (index: number, outTime: boolean) => {
-      if (outTime) return;
-      const chooseDay = weekInfo.dateJS.add(index - weekInfo.weekday, 'day');
-      const formatDate = chooseDay.format('YYYY-MM-DD');
+  const selectDay = (index: number, outTime: boolean) => {
+    if (outTime) return;
+    const chooseDay = weekInfo.dateJS.add(index - weekInfo.weekday, 'day');
+    const formatDate = chooseDay.format('YYYY-MM-DD');
 
-      setSelectNodeIndex(index); // 选中的节点
-      SetMonth(chooseDay.month() + 1); //选中的节点对应的月份
-      callback &&
-        callback({
-          currentTime: formatDate,
-          flag,
-        });
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
+    setSelectNodeIndex(index); // 选中的节点
+    SetMonth(chooseDay.month() + 1); //选中的节点对应的月份
+    callback &&
+      callback({
+        currentTime: formatDate,
+        flag,
+      });
+  };
 
   /**
    *
@@ -86,17 +90,26 @@ function TimePicker(props: TimePickerProps) {
    */
   const changeWeek = (type: OpProps) => {
     // 当前周 且向下无法往下选择
-    if (type == 'DESC' && week == 0) return;
+    if (type == 'DESC' && diffDaysInfo.diffWeeks == 0) return;
 
     switch (type) {
       case 'DESC':
-        if (week === 1 && weekInfo.weekday >= selectNodeIndex) {
+        if (
+          diffDaysInfo.diffWeeks === 1 &&
+          weekInfo.weekday >= selectNodeIndex
+        ) {
           setSelectNodeIndex(weekInfo.weekday); // 当前周选中今天
         }
-        setWeek(week - 1);
+        setDiffDaysInfo({
+          diffdays: diffDaysInfo.diffdays - 7,
+          diffWeeks: diffDaysInfo.diffWeeks - 1,
+        });
         break;
       case 'ADD':
-        setWeek(week + 1);
+        setDiffDaysInfo({
+          diffdays: diffDaysInfo.diffdays + 7,
+          diffWeeks: diffDaysInfo.diffWeeks + 1,
+        });
         break;
       default:
         break;
@@ -117,7 +130,9 @@ function TimePicker(props: TimePickerProps) {
   const renderTimerArea = () => {
     return weekNodes.map((item, weekIndex) => {
       let date = weekInfo.date + weekIndex - weekInfo.weekday;
-      let outTime = (weekInfo.weekday - weekIndex > 0 && week == 0) || week < 0; // 是否过期
+      let outTime =
+        (weekInfo.weekday - weekIndex > 0 && diffDaysInfo.diffWeeks == 0) ||
+        diffDaysInfo.diffWeeks < 0; // 是否过期
       let classname = classnames('u-cell', {
         'u-selected': selectNodeIndex == weekIndex,
         'out-time': outTime,
@@ -144,8 +159,12 @@ function TimePicker(props: TimePickerProps) {
   };
 
   useEffect(() => {
-    setWeekInfo(dayInfo(week));
-  }, [week]);
+    setWeekInfo(dayInfo(diffDaysInfo.diffdays));
+  }, [diffDaysInfo.diffdays]);
+
+  useEffect(() => {
+    SetMonth(weekInfo.month);
+  }, [weekInfo]);
 
   useEffect(() => {
     selectDay(selectNodeIndex, false); // 根据当前选中天
@@ -171,7 +190,6 @@ function TimePicker(props: TimePickerProps) {
       </div>
       <div className="u-footer">
         <Checkbox onChange={changeCheckbox} defaultChecked={flag}>
-          {' '}
           暂不确定日期和时间，先设置评委，稍后再安排具体日期和时间
         </Checkbox>
       </div>

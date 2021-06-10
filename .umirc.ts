@@ -1,6 +1,6 @@
 import route from './src/route';
 import { defineConfig } from 'umi';
-export const menus =  [
+export const menus = [
   {
     path: '/',
     name: 'welcome',
@@ -32,15 +32,18 @@ const waitTime = (time: number = 100) => {
 };
 
 export default defineConfig({
+  antd: {
+    compact: true,
+  },
   layout: {
     // 支持任何不需要 dom 的
     // https://procomponents.ant.design/components/layout#prolayout
     name: 'umi-app',
     locale: true,
-    contentStyle: {padding: "20px", height: "100vh"},
+    contentStyle: { padding: '20px', height: '100vh' },
     layout: 'side',
   },
-  
+
   nodeModulesTransform: {
     type: 'none',
   },
