@@ -12,7 +12,7 @@ export default function IndexPage() {
 
   return (
     <div>
-      <DayPicker callback={showDay} flag currentTime="2021-5-20" />
+      <DayPicker callback={showDay} flag currentTime="2021-07-18" />
       <div>你选中的是：{info.currentTime} </div>
       <h1 className={styles.title}>Page index</h1>
     </div>
