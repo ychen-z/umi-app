@@ -166,6 +166,7 @@ function TimePicker(props: TimePickerProps) {
 
   useEffect(() => {
     SetMonth(weekInfo.month);
+
     selectDay(
       diffDaysInfo.diffWeeks == 0 ? weekInfo.weekday : selectNodeIndex,
       diffDaysInfo.diffWeeks < 0 && !diffDaysInfo.first ? true : false,

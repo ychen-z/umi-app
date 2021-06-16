@@ -35,6 +35,11 @@ export default defineConfig({
   antd: {
     compact: true,
   },
+  request: {
+    dataField: 'data',
+  },
+
+  locale: {}, // 国际化
   layout: {
     // 支持任何不需要 dom 的
     // https://procomponents.ant.design/components/layout#prolayout

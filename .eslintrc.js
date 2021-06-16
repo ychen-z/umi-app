@@ -38,10 +38,10 @@ module.exports = {
 
     'react/jsx-filename-extension': [
       'warn',
-      { extensions: ['.js', '.jsx', '.tsx'] },
+      { extensions: ['.js', '.jsx', '.tsx', '.ts'] },
     ], // 允许写jsx内容的文件扩展名列表
 
-    'arrow-parens': ['error', 'as-needed'], // 箭头函数参数只有一个时，可以省略参数的括号，否则error提示
+    'arrow-parens': 'off', // 箭头函数参数只有一个时，可以省略参数的括号，否则error提示
 
     'no-unused-vars': 'off', // 由ts处理
 
